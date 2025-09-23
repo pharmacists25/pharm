@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Screen Image Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .image-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+        
+        .Qloyee-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .image-info {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 101;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 102;
+        }
+        
+        .control-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff4d4d;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 103;
+            display: none;
+            text-align: center;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #4CAF50;
+            font-size: 20px;
+            z-index: 103;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .instructions {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 90%;
+        }
+        
+        .instructions code {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .nav-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 102;
+        }
+        
+        @media (max-width: 768px) {
+            .image-info {
+                font-size: 16px;
+                bottom: 15px;
+            }
+            
+            .instructions {
+                font-size: 12px;
+                bottom: 60px;
+            }
+            
+            .control-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .nav-controls {
+                bottom: 70px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="image-container">
+        <img id="QImage" class="Qloyee-image" src="https://via.placeholder.com/500x300/3498db/ffffff?text=Loading..." alt="Image">
+    </div>
+    
+    <div class="image-info">ID: <span id="QId">-</span></div>
+    
+    <div class="controls">
+        <button class="control-btn" onclick="location.reload()">Refresh</button>
+        <button class="control-btn" onclick="showHelp()">Help</button>
+    </div>
+    
+    <div class="nav-controls">
+        <button class="control-btn" onclick="prevImage()">Previous</button>
+        <button class="control-btn" onclick="nextImage()">Next</button>
+    </div>
+    
+    <div id="errorMsg" class="message">
+        Image not found. Showing default image (2222).
+    </div>
+    
+    <div id="loadingMsg" class="loading">
+        Loading image...
+    </div>
+    
+    <div id="helpMsg" class="message">
+        <h3>How to Use</h3>
+        <p>Add an image ID to the URL:</p>
+        <p><code>?Q=1001</code></p>
+        <p>Example: <code>https://yoursite.com/?Q=1002</code></p>
+        <p>Supports IDs from 1 to 99999</p>
+        <button class="control-btn" onclick="hideHelp()" style="margin-top: 15px;">Close</button>
+    </div>
+    
+    <div class="instructions">
+        Add image ID to URL: <code>?Q=1001</code> | Try: 
+        <a href="?Q=1" style="color: #4CAF50;">1</a>, 
+        <a href="?Q=5000" style="color: #4CAF50;">5000</a>, 
+        <a href="?Q=9999" style="color: #4CAF50;">9999</a>, 
+        <a href="?Q=2222" style="color: #4CAF50;">2222</a>
+    </div>
+
+    <script>
+        // DOM elements
+        const QImage = document.getElementById('QImage');
+        const QId = document.getElementById('QId');
+        const errorMsg = document.getElementById('errorMsg');
+        const loadingMsg = document.getElementById('loadingMsg');
+        const helpMsg = document.getElementById('helpMsg');
+
+        // Configuration
+        const IMAGE_BASE_PATH = "images/";
+        const FALLBACK_IMAGE_ID = 2222;
+        const MIN_IMAGE_ID = 1;
+        const MAX_IMAGE_ID = 99999;
+
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function showHelp() {
+            helpMsg.style.display = 'block';
+        }
+
+        function hideHelp() {
+            helpMsg.style.display = 'none';
+        }
+
+        // Generate image path based on ID
+        function getImagePath(imageId) {
+            return `${IMAGE_BASE_PATH}${imageId}.jpg`;
+        }
+
+        // Function to check if an image exists
+        function checkImageExists(imageUrl, callback) {
+            const img = new Image();
+            img.onload = function() {
+                callback(true);
+            };
+            img.onerror = function() {
+                callback(false);
+            };
+            img.src = imageUrl;
+        }
+
+        function displayImage(imageId, isFallback = false) {
+            QId.textContent = imageId;
+            
+            // Show loading message
+            loadingMsg.style.display = 'block';
+            errorMsg.style.display = 'none';
+            
+            const imagePath = getImagePath(imageId);
+            
+            // Check if the image exists
+            checkImageExists(imagePath, function(exists) {
+                loadingMsg.style.display = 'none';
+                
+                if (exists) {
+                    QImage.src = imagePath;
+                    if (isFallback) {
+                        errorMsg.style.display = 'block';
+                        setTimeout(() => {
+                            errorMsg.style.display = 'none';
+                        }, 3000);
+                    }
+                } else {
+                    // If image doesn't exist, try to fall back to the default image
+                    if (imageId !== FALLBACK_IMAGE_ID) {
+                        displayImage(FALLBACK_IMAGE_ID, true);
+                    } else {
+                        // Even the fallback image doesn't exist
+                        QImage.src = 'https://via.placeholder.com/1920x1080/e74c3c/ffffff?text=Image+Not+Found';
+                        errorMsg.style.display = 'block';
+                        errorMsg.textContent = 'Image not found and fallback image also missing.';
+                    }
+                }
+            });
+        }
+
+        function navigateToImage(imageId) {
+            // Validate image ID
+            const numId = parseInt(imageId);
+            if (isNaN(numId) || numId < MIN_IMAGE_ID || numId > MAX_IMAGE_ID) {
+                displayImage(FALLBACK_IMAGE_ID, true);
+                return;
+            }
+            
+            // Update URL without reloading the page
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('Q', numId);
+            window.history.replaceState({}, '', newUrl);
+            
+            // Display the image
+            displayImage(numId);
+        }
+
+        function prevImage() {
+            const currentId = parseInt(QId.textContent) || FALLBACK_IMAGE_ID;
+            const prevId = Math.max(MIN_IMAGE_ID, currentId - 1);
+            navigateToImage(prevId);
+        }
+
+        function nextImage() {
+            const currentId = parseInt(QId.textContent) || FALLBACK_IMAGE_ID;
+            const nextId = Math.min(MAX_IMAGE_ID, currentId + 1);
+            navigateToImage(nextId);
+        }
+
+        function handlePageLoad() {
+            const QNumber = parseInt(getQueryParam('Q'));
+            
+            // Default to fallback image if no parameter is provided or invalid
+            const imageId = (isNaN(QNumber) || QNumber < MIN_IMAGE_ID || QNumber > MAX_IMAGE_ID) 
+                ? FALLBACK_IMAGE_ID 
+                : QNumber;
+            
+            displayImage(imageId);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                prevImage();
+            } else if (event.key === 'ArrowRight') {
+                nextImage();
+            }
+        });
+
+        window.addEventListener('load', handlePageLoad);
+        
+        // Hide error message when clicked
+        errorMsg.addEventListener('click', function() {
+            this.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
